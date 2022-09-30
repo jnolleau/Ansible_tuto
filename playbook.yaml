@@ -1,0 +1,95 @@
+- name: My first playbook
+  hosts: budgie
+  remote_user: julien
+  tasks:
+    - name: ping
+      ping:
+    - name: Whoami
+      command: whoami
+    - name: my debug
+      debug:
+        msg: "{{ var1 }}, {{ var2 }}"
+    - name: Touch the same file, but add/remove some permissions
+      become: yes
+      file:
+        path: "/home/julien/test.conf"
+        state: touch
+        owner: root
+        group: root
+        mode: u+rw,g-wx,o-rwx
+    - name: creates new dir /home/julien/test_dir/*
+      file:
+        path: "/home/julien/test_dir/{{ item }}"
+        state: directory
+        # recurse: yes
+      # with_items: "{{ dir_list }}"
+      loop: "{{ dir_list|flatten(levels=1) }}"
+    - name: update apt cache
+      become: yes
+      apt:
+        update_cache: yes
+        force_apt_get: yes
+        cache_valid_time: 3600
+    - name: upgrade of the machine
+      become: yes
+      apt:
+        upgrade: yes
+        force_apt_get: yes
+    - name: test if reboot-required exists
+      stat:
+        path: /var/run/reboot-required
+      register: __reboot_required_reg
+    - name: reboot the machine if reboot_file exists
+      become: yes
+      reboot:
+        msg: "Reboot via Ansible"
+        connect_timeout: 5
+        reboot_timeout: 300
+        pre_reboot_delay: 0
+        post_reboot_delay: 10
+        test_command: uptime
+      when: __reboot_required_reg.stat.exists
+    - name: Touch a file after reboot
+      file:
+        path: "/home/julien/reboot_ok"
+        state: touch
+
+
+    # - name: removes /home/julien/test_dir/*
+    #   file:
+    #     path: "/home/julien/test_dir/{{ item }}"
+    #     state: absent
+    #   with_items: "{{ dir_list }}"
+    # - name: display the item vars
+    #   debug:
+    #     var: "{{item}}"
+    #   with_items: "{{ dir_list }}"
+
+    # - name: install dfc
+    #   become: yes
+    #   apt:
+    #     name: dfc
+    #     state: latest
+    #     default_release: 
+    #     update_cache: yes
+    #     cache_valid_time: 3600
+
+    # - name: Touch a file which will serve to reboot reboot condition
+    #   file:
+    #     path: "/home/julien/reboot_file"
+    #     state: touch
+    # - name: test if reboot_file exists
+    #   stat:
+    #     path: /home/julien/reboot_file
+    #   register: __reboot_file_reg
+    # - name: reboot the machine if reboot_file exists
+    #   become: yes
+    #   reboot:
+    #     msg: "Reboot via Ansible"
+    #     connect_timeout: 5
+    #     reboot_timeout: 300
+    #     pre_reboot_delay: 0
+    #     post_reboot_delay: 10
+    #     test_command: uptime
+    #   when: __reboot_file_reg.stat.exists
+
